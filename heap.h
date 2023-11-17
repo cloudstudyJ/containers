@@ -2,12 +2,18 @@
 
 #include "../utilities/typeHandler.h"
 
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
 struct Maximum{ };
 struct Minimum{ };
 
 template <typename T, typename PRIORITY = Maximum>
 class Heap {
     using uint8  = unsigned char;
+    using uint16 = unsigned short;
     using uint32 = unsigned int;
 
     private:
@@ -20,6 +26,8 @@ class Heap {
 
                 Node& operator=(const T& _data);
                 Node& operator=(T&& _data) noexcept;
+
+                void swapData(Node& other);
 
             public:
                 T data{ };
@@ -43,6 +51,9 @@ class Heap {
 
               T& peek();
         const T& peek() const;
+
+        inline uint32 size() const;
+        inline uint16 level() const;
 
         inline bool isEmpty() const;
 
@@ -82,6 +93,16 @@ typename Heap<T, PRIORITY>::Node& Heap<T, PRIORITY>::Node::operator=(T&& _data) 
         data = move(_data);
 
     return *this;
+}
+
+template <typename T, typename PRIORITY>
+void Heap<T, PRIORITY>::Node::swapData(Node& other) {
+    if (this != &other) {
+        T temp = move(data);
+
+        data = move(other.data);
+        other.data = move(temp);
+    }
 }
 
 /* Heap Definitions */
@@ -140,7 +161,6 @@ void Heap<T, PRIORITY>::push(const T& data) {
 template <typename T, typename PRIORITY>
 void Heap<T, PRIORITY>::pop() {
     if (!isEmpty()) {
-        // need to test this function
         uint8     actualLevel = mLevel - 1;
         uint32 lvlMaxCapacity = 1 << actualLevel;
 
@@ -173,6 +193,17 @@ void Heap<T, PRIORITY>::clear() {
 }
 
 template <typename T, typename PRIORITY>
+inline typename Heap<T, PRIORITY>::uint32 Heap<T, PRIORITY>::size() const { return mSize; }
+/**
+ * @brief
+ *     트리의 레벨을 출력한다. (root는 레벨 0)
+ *
+ * @return Heap<T, PRIORITY>::uint16 : 트리의 레벨 값
+ */
+template <typename T, typename PRIORITY>
+inline typename Heap<T, PRIORITY>::uint16 Heap<T, PRIORITY>::level() const { return static_cast<uint16>((mLevel != 0 ? (mLevel - 1) : 0)); }
+
+template <typename T, typename PRIORITY>
 inline bool Heap<T, PRIORITY>::isEmpty() const { return (mSize == 0); }
 
 /**
@@ -186,7 +217,7 @@ inline bool Heap<T, PRIORITY>::isEmpty() const { return (mSize == 0); }
  */
 template <typename T, typename PRIORITY>
 typename Heap<T, PRIORITY>::Node* Heap<T, PRIORITY>::getNodeAt(const uint32& idx) const {
-    // idx interval checking here
+    // idx interval checking? -> effect to operator[]
     uint8 level{ };
 
     while (static_cast<uint32>(1 << level) <= idx)
@@ -206,27 +237,49 @@ typename Heap<T, PRIORITY>::Node* Heap<T, PRIORITY>::getNodeAt(const uint32& idx
  */
 template <typename T, typename PRIORITY>
 void Heap<T, PRIORITY>::pushUpdate(uint32 idx) {
-    Node* current{ };
+    Node* current = getNodeAt(idx);
     Node*  parent{ };
 
     while (idx > 1) {
-        current = getNodeAt(idx);
-         parent = getNodeAt((idx % 2) ? ((idx + 1) / 2) - 1 : (idx + 1) / 2);
+        parent = getNodeAt(idx % 2 ? ((idx + 1) / 2) - 1 : (idx + 1) / 2);
 
-        if ((isSame<PRIORITY, Maximum>) ? (current->data > parent->data) : (current->data <= parent->data)) {
-            T temp = move(parent->data);
+        if (isSame<PRIORITY, Maximum> ? (current->data > parent->data) : (current->data < parent->data))
+            current->swapData(*parent);
 
-             parent->data = current->data;
-            current->data = temp;
-        }
         else
             break;
 
+        current = parent;
         idx /= 2;
     }
 }
 template <typename T, typename PRIORITY>
 void Heap<T, PRIORITY>::popUpdate() {
-    // fill this function
-    Node* current{ };
+    uint32 idx = 1;
+
+    Node*  current = getNodeAt(idx);
+    Node* compNode{ };
+    Node*    right{ };
+    Node*     left{ };
+
+    while ((idx * 2) <= mSize) {
+        compNode = current;
+           right = getNodeAt(idx * 2 + 1);
+            left = getNodeAt(idx * 2);
+
+        if (right != nullptr && (isSame<PRIORITY, Maximum> ? (compNode->data < right->data) : (compNode->data > right->data)))
+            compNode = right;
+
+        if (left != nullptr && (isSame<PRIORITY, Maximum> ? (compNode->data < left->data) : (compNode->data > left->data)))
+            compNode = left;
+
+        if (compNode != current) {
+            current->swapData(*compNode);
+
+            current = compNode;
+            idx = (compNode == left ? (idx * 2) : (idx * 2 + 1));
+        }
+        else
+            break;
+    }
 }
