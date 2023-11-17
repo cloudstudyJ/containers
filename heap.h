@@ -2,10 +2,13 @@
 
 #include "../utilities/typeHandler.h"
 
-#include <iostream>
-
-using std::cout;
-using std::endl;
+/*      ! TODO
+    1. copy operator
+    2. move operator
+    3. operator[]
+    4. iterator
+    5. peek()
+*/
 
 struct Maximum{ };
 struct Minimum{ };
